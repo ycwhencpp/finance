@@ -7,8 +7,8 @@
 {% block main %}
 
 <form action="/sell" method="post">
-        <div class="form-group">
-            <select name="symbol">
+        <div class="form-group" >
+            <select name="symbol" class="form-control">
                 <option disabled selected value="">stocks</option>
                 {% for option in stocks_symbol %}
 
