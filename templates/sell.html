@@ -8,12 +8,12 @@
 
 <form action="/sell" method="post">
         <div class="form-group">
-            <select name="stocks">
+            <select name="symbol">
                 <option disabled selected value="">stocks</option>
                 {% for option in stocks_symbol %}
-                {% if option.quantity != 0 %}
-                    <option value="{{option.symbol}}">{{option.symbol}}</option>
-                    {% endif %}
+
+                    <option value="{{option.symbol}}">{{option.symbol|upper}}</option>
+
                 {% endfor %}
             </select>
         </div>

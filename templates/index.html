@@ -6,28 +6,28 @@
 {% endblock %}
 
 {% block main %}
-<h1> WELCOME {{user[0]["username"]}} </h1>
+<h1> WELCOME <span class="name_header">{{user[0]["username"]}}</span> </h1>
        <table>
            <thead>
                <tr>
                    <th>Symbol</td>
-                   <th>Name</td>
+                   <th >Name</td>
                    <th>Shares</td>
                    <th>Price</td>
                    <th>Total</th>
                </tr>
                <tfoot>
                    <tr>
-                       <td  colspan="4"></td>
+                       <td  colspan="4" class></td>
 
-                           <td>{{(maha_total+user[0]["cash"])|usd}}</td>
+                           <td><b>{{(maha_total+user[0]["cash"])|usd}}</b></td>
 
                    </tr>
                </tfoot>
                <tbody>
                 {% for share in shares %}
-                    <tr>
-                        <td>{{share.symbol}}</td>
+                    <tr >
+                        <td>{{share.symbol|upper}}</td>
                         <td>{{share.stock_name}}</td>
                         <td>{{share.quantity}}</td>
                         <td>{{share.price|usd}}</td>
@@ -36,7 +36,7 @@
 
                 {% endfor %}
                 <tr>
-                    <td colspan="4">CASH</td>
+                    <td colspan="4" class="footer_table">CASH</td>
                      <td> {{user[0]["cash"]|usd}}</td>
                 </tr>
                </tbody>

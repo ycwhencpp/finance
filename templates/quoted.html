@@ -7,5 +7,5 @@
 
 
 {% block main %}
- <h1>  Current price for {{symbol.name}} is  ${{symbol.price}} </h1>
+ <h1>  Current price for {{symbol.name|upper}} is  {{symbol.price|usd}} </h1>
 {% endblock %}

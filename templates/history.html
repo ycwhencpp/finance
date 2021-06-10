@@ -6,22 +6,22 @@
 
 {% block main %}
 
-<table>
-        <thead>
-            <tr>
-                <th>Symbol</th>
+<table class="table">
+        <thead >
+            <tr >
+                <th >Symbol</th>
                 <th>Shares</th>
                 <th>Price</th>
                 <th>Transacted</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody >
             {% for stock in history   %}
 
-            <tr>
-                    <td>{{ stock.symbol}}</td>
+            <tr >
+                    <td>{{ stock.symbol|upper}}</td>
                     <td>{{stock.quantity}}</td>
-                    <td>{{stock.price}}</td>
+                    <td>{{stock.price|usd}}</td>
                     <td> {{stock.date_time}}</td>
 
             </tr>

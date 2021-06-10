@@ -11,9 +11,7 @@ from datetime import datetime
 
 from helpers import apology, login_required, lookup, usd
 
-import operator
-
-
+users=[]
 
 
 # Configure application
@@ -53,24 +51,15 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-
-    maha_total=0
-    shares=[]
-    user=db.execute("SELECT username,cash FROM users WHERE id=?",session["user_id"])
-    company=db.execute("SELECT DISTINCT(symbol) as symbol FROM stocks WHERE id=? AND quantity>0",session["user_id"])
-    stock_details=db.execute("SELECT * FROM stocks WHERE id =? ORDER BY date_time desc",session["user_id"])
-    for comp in company:
-        share=db.execute("SELECT SUM(quantity) as quantity ,stock_name,symbol FROM stocks WHERE symbol =? AND id=? " ,comp["symbol"],session["user_id"])
-        price=lookup(comp["symbol"])["price"]
-        total=price*share[0]["quantity"]
-        share[0]["price"]=price
-        share[0]["total"]=round(total,2)
-        shares.append(share[0])
-    for share in shares:
-        maha_total+=share["total"]
+   # stock_details=db.execute("SELECT stock_name,SUM(quantiy) as shares FROM stocks WHERE id =? GROUP BY stock_name HAVING shares>0",session["user_id"])
+   # user=db.execute("SELECT username FROM users WHERE id=?",session["user_id"])
+    #grand_total=0
+    #for record in stock_details:
+     #   stock=lookup(record["symbol"])
 
 
-    return render_template("index.html",shares=shares,user=user,maha_total=maha_total)
+
+    return render_template("index.html")
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -86,25 +75,18 @@ def buy():
 
         #checking whether user have provided the symbol or not
         if not symbol:
-            return apology("provide the symbol",400)
+            return apology("provide the symbol",403)
 
         # checking whether user have provided the correct symbol or not
         if  lookup(symbol)==None:
-            return apology("incorrect symbol",400)
+            return apology("incorrect symbol",404)
 
         #getting values of amount from input filed
         shares=request.form.get("shares")
 
         #checking whether the user has provided the quantity or not
         if not shares :
-            return apology("provide the quantity",400)
-
-        #checking  fractional, negative, and non-numeric shares
-        if int(shares)<0 :  #or
-            return apology("enter valid value of shares",400)
-
-        if  type(shares) == float:
-            return apology("enter valid value of shares",400)
+            return apology("provide the quantity",403)
 
         #using lookup() for  checking the current price of stocks (lookup function returns dict)
         stock_price=lookup(symbol)["price"]
@@ -128,11 +110,10 @@ def buy():
             db.execute("UPDATE users SET cash = ? WHERE id = ?",round(float(cash_left),2),session["user_id"])
 
             #after succesful purcahse redirecting him to index page
-            flash("BOUGHT!!")
             return redirect("/")
 
         # if user dont have sufficient cash to but stocks rendering apology
-        return apology("not enough money",400)
+        return apology("not enough money",403)
 
     # if user visit it by get method showing him buy page
     return render_template("buy.html")
@@ -142,26 +123,7 @@ def buy():
 @login_required
 def history():
     """Show history of transactions"""
-
-    history=[]
-    bought=db.execute("SELECT symbol,quantity,price,date_time FROM stocks WHERE id=? AND quantity!=0 ORDER BY date_time",session["user_id"])
-    sold=db.execute("SELECT symbol,quantity,price,date_time FROM sold_stocks WHERE id =? AND quantity!=0 ORDER BY date_time",session["user_id"])
-
-
-
-
-
-
-    history = bought
-    for stock in sold:
-        history.append(stock)
-
-
-
-
-    history.sort(key=operator.itemgetter("date_time"))
-
-    return render_template("history.html",history=history)
+    return apology("TODO")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -209,7 +171,6 @@ def logout():
     session.clear()
 
     # Redirect user to login form
-    flash("sucessfully logged out")
     return redirect("/")
 
 
@@ -220,12 +181,11 @@ def quote():
     if request.method=="GET":
         return render_template("quote.html")
     symbol=request.form.get("symbol")
-    if not symbol:
-        return apology("enter the symbol",400)
-    if lookup(symbol)==None:
-        return apology("enter a valid symbol",400)
     return render_template("quoted.html",symbol=lookup(symbol))
 
+users=db.execute("SELECT username FROM users")
+
+print(users)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -236,24 +196,22 @@ def register():
         username=request.form.get("username")
 
         if not username :
-            return apology("Insert username",400)
+            return apology("Insert username",403)
 
-        rows = db.execute("SELECT * FROM users WHERE username = ?", username)
-        print("row:",rows)
-        if len(rows) ==1:
-            return apology("Username not available",400)
+        row = db.execute("SELECT count(*) FROM users WHERE username = ?",username)
+        if row ==1:
+            return apology("Username not available",403)
 
         password=request.form.get("password")
         confirmation=request.form.get("confirmation")
 
         if not password :
-            return apology("Insert password",400)
+            return apology("Insert password",403)
         elif  password!=confirmation:
-            return apology("Password did not matched",400)
+            return apology("Password did not matched",403)
 
         password_hash=generate_password_hash(password)
         db.execute("INSERT INTO users(username,hash) VALUES (?,?)",username,password_hash)
-        flash("REGISTIRED!!")
         return redirect("/")
 
     return render_template("register.html")
@@ -263,48 +221,32 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
-    stocks_symbol=db.execute("SELECT DISTINCT(symbol)  FROM stocks WHERE id =? AND quantity!=0 ",session["user_id"] )
+    stocks_symbol=db.execute("SELECT DISTINCT(symbol) FROM stocks WHERE id =? ",session["user_id"] )
     print(stocks_symbol)
     if request.method=="POST":
 
-        option=request.form.get("symbol")
+        option=request.form.get("stocks")
         if not option:
             return apology("enter symbol",400)
-        is_valid = False
-        for check  in stocks_symbol:
-            if option == check["symbol"]:
-                is_valid == True
-                break
-        if not is_valid:
-            apology("wrong symbol chosen",400)
+        for check in stocks_symbol:
+            if option not in check["symbol"]:
+                return apology("Choose valid symbol",400)
 
         count=db.execute("SELECT SUM(quantity) as quantity FROM stocks WHERE symbol =? AND id=?",option,session["user_id"] )
-
+        print(count)
         shares=int(request.form.get("shares"))
         if shares>count[0]["quantity"]:
-            return apology("not enough shares",400)
-
-        elif shares<=count[0]["quantity"]:
+            return apology("not enough shares",404)
+        if shares<count[0]["quantity"]:
             share_left=count[0]["quantity"]-shares
             db.execute("UPDATE stocks SET quantity=? WHERE symbol=? AND id=?",share_left,option,session["user_id"] )
-            previous_cash=db.execute("SELECT cash FROM users WHERE id=?",session["user_id"])
-
-            cash_returned=shares*(lookup(option)["price"])
-
-            total_cash=cash_returned+previous_cash[0]["cash"]
-            db.execute("UPDATE users SET cash=? WHERE id=?",total_cash,session["user_id"])
-            db.execute("INSERT INTO sold_stocks(symbol,quantity,price,id) VALUES (?,?,?,?)",option,-shares,lookup(option)["price"],session["user_id"])
-            flash("SOLD!!")
             return redirect("/")
-       # elif shares==count[0]["quantity"]:
-        #    db.execute("DELETE FROM stocks WHERE symbol=? AND id = ?",option,session["user_id"] );
-         #   previous_cash=db.execute("SELECT cash FROM users WHERE id=?",session["user_id"])
-         #
-         #   cash_returned=shares*(lookup(option)["price"])
-          #
-          #  total_cash=cash_returned+previous_cash[0]["cash"]
-           # db.execute("UPDATE users SET cash=? WHERE id=?",total_cash,session["user_id"])
-        #    return redirect("/")
+        if shares==count[0]["quantity"]:
+            db.execute("DELETE FROM stocks WHERE symbol=? AND id = ?",option,session["user_id"] );
+            return redirect("/")
+        cash
+
+
 
 
     return render_template("sell.html",stocks_symbol=stocks_symbol)
